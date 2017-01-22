@@ -29,7 +29,7 @@
     </properties>
 
     <scm>
-        <developerConnection>scm:git:</developerConnection>
+        <developerConnection>scm:git:git@github.com:itzg/junit-rule-docker.git</developerConnection>
     </scm>
 
     <dependencies>
