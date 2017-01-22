@@ -8,6 +8,8 @@ test:
   override:
     - mvn -P test-leave-running integration-test
   post:
+    - if [[ $MVN_RELEASE_USER_EMAIL ]]; then git config --global user.email "$MVN_RELEASE_USER_EMAIL" ; fi
+    - if [[ $MVN_RELEASE_USER_NAME ]]; then git config --global user.name "$MVN_RELEASE_USER_NAME" ; fi
     - if [[ $RELEASE ]]; then mvn -B release:prepare -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT "-Darguments=-P test-leave-running" ; fi
 
 deployment:
