@@ -1,3 +1,16 @@
 machine:
   java:
     version: openjdk8
+  services:
+    - docker
+
+test:
+  post:
+    - [ $RELEASE ] && mvn -B release:prepare -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT
+
+deployment:
+  deploy:
+    tag: /v.*/
+    owner: itzg
+    commands:
+      - mvn -s settings.xml deploy
