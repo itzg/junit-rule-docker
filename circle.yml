@@ -4,9 +4,9 @@ machine:
   services:
     - docker
 
-test:
-  post:
-    - [ $RELEASE ] && mvn -B release:prepare -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT
+#test:
+#  post:
+#    - "[ $RELEASE ] && mvn -B release:prepare -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT"
 
 deployment:
   deploy:
