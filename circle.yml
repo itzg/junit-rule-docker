@@ -17,4 +17,18 @@ deployment:
     tag: /v.*/
     owner: itzg
     commands:
-      - mvn -s settings.xml deploy
+      - mvn -P test-leave-running -DskipTests -s settings.xml deploy
+
+# To initiate a maven release:
+#
+# In CircleCI project settings > Checkout SSH Keys
+#   Make sure you have a user key allocated
+#
+# curl -X POST -H "Content-Type: application/json" -d '{
+#      "build_parameters": {
+#          "RELEASE": "1.0",
+#          "NEXT": "1.1-SNAPSHOT",
+#          "GIT_USER_EMAIL": "$EMAIL",
+#          "GIT_USER_NAME": "Via CircleCI"
+#      }
+#  }' "https://circleci.com/api/v1.1/project/github/itzg/junit-rule-docker/tree/master?circle-token=$CIRCLECI_API_TOKEN"
