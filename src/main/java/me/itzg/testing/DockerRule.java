@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2017 by Geoff Bourne <itzgeoff@gmail.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package me.itzg.testing;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -21,7 +37,8 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 /**
- * Created by geoff on 1/21/17.
+ * @author Geoff Bourne
+ * @since Jan 2017
  */
 public class DockerRule implements TestRule {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
@@ -30,6 +47,7 @@ public class DockerRule implements TestRule {
     private String[] command;
     private DockerClient dockerClient;
     private ContainerCreation container;
+    private boolean leaveRunning;
 
     public DockerRule(String image) {
         this.image = image;
@@ -37,6 +55,11 @@ public class DockerRule implements TestRule {
 
     public DockerRule command(String... command) {
         this.command = command;
+        return this;
+    }
+
+    public DockerRule leavingRunning(boolean leaveRunning) {
+        this.leaveRunning = leaveRunning;
         return this;
     }
 
@@ -68,15 +91,22 @@ public class DockerRule implements TestRule {
 
                 container = dockerClient.createContainer(configBuilder.build());
 
-                LOGGER.info("Starting container {}", container.id());
+                final String id = container.id();
 
-                dockerClient.startContainer(container.id());
+                LOGGER.info("Starting container {}", id);
+
+                dockerClient.startContainer(id);
 
                 statement.evaluate();
 
-                LOGGER.info("Stopping container {}", container.id());
-                dockerClient.killContainer(container.id());
-                dockerClient.removeContainer(container.id());
+                if (!leaveRunning) {
+                    LOGGER.info("Stopping container {}", id);
+                    dockerClient.killContainer(id);
+                    dockerClient.removeContainer(id);
+                }
+                else {
+                    LOGGER.info("Leaving container {} running", id);
+                }
 
                 dockerClient.close();
             }

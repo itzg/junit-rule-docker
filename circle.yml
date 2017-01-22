@@ -4,9 +4,11 @@ machine:
   services:
     - docker
 
-#test:
-#  post:
-#    - "[ $RELEASE ] && mvn -B release:prepare -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT"
+test:
+  override:
+    - mvn -P test-leave-running integration-test
+  post:
+    - if [[ $RELEASE ]]; then mvn -B release:prepare -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT "-Darguments=-P test-leave-running" ; fi
 
 deployment:
   deploy:
