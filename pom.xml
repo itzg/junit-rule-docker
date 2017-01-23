@@ -100,6 +100,22 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>custom-docker-host</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <dockerHostUri>${dockerHostUri}</dockerHostUri>
+                                <dockerCerts>${dockerCerts}</dockerCerts>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <distributionManagement>
