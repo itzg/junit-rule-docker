@@ -27,7 +27,7 @@ import org.junit.Test;
 public class DockerRuleSkipOfflineTest {
 
     @ClassRule
-    public static DockerRule dockerRule = new DockerRule("itzg/elasticsearch:5")
+    public static DockerRule dockerRule = new DockerRule("httpd:alpine")
             .skipWhenOffline(true)
             .uri("http://localhost:22222" /* bogus port */);
 

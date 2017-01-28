@@ -31,14 +31,14 @@ import java.nio.file.Paths;
 public class DockerCustomHostTest {
 
     @ClassRule
-    public static DockerRule dockerRule = new DockerRule("itzg/elasticsearch:5")
+    public static DockerRule dockerRule = new DockerRule("httpd:alpine")
             .uri(System.getProperty("dockerHostUri"))
             .dockerCertPath(Paths.get(System.getProperty("dockerCerts")))
             .leavingRunning(true);
 
     @Test
     public void testSuccess() throws Exception {
-        final InetSocketAddress accessToPort = dockerRule.getAccessToPort(9200);
+        final InetSocketAddress accessToPort = dockerRule.getAccessToPort(80);
 
         HttpAssert.waitForEndpoint(new URL("http", accessToPort.getHostName(), accessToPort.getPort(), "/"),
                 500,

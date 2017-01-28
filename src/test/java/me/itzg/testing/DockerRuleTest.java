@@ -35,25 +35,25 @@ import static org.junit.Assert.assertThat;
 public class DockerRuleTest {
 
     @Rule
-    public DockerRule dockerRule = new DockerRule("itzg/elasticsearch:5")
+    public DockerRule dockerRule = new DockerRule("httpd:alpine")
             .leavingRunning(System.getProperty("testLeaveRunning") != null)
-            .waitForLog("started");
+            .waitForLog("AH00094");
 
     @Test
     public void testAccess() throws Exception {
 
-        InetSocketAddress accessToPort = dockerRule.getAccessToPort(9200);
+        InetSocketAddress accessToPort = dockerRule.getAccessToPort(80);
 
-        System.out.println("Port 9200 at " + accessToPort);
+        System.out.println("Port 80 at " + accessToPort);
         assertThat(accessToPort.getPort(), not(equalTo(0)));
 
-        final HostAndPort hostAndPort = dockerRule.getHostAndPort(9200);
+        final HostAndPort hostAndPort = dockerRule.getHostAndPort(80);
         assertThat(hostAndPort.getPort(), not(equalTo(0)));
 
         URL url = new URL("http", accessToPort.getHostName(), accessToPort.getPort(), "/");
 
         String strContent = CharStreams.toString(new InputStreamReader(((InputStream) url.getContent())));
 
-        assertThat(strContent, containsString("cluster_name"));
+        assertThat(strContent, containsString("It works"));
     }
 }

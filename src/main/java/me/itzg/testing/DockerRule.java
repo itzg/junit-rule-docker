@@ -269,7 +269,7 @@ public class DockerRule implements TestRule {
                     final LogMessage msg = logStream.next();
 
                     final String logStr = StandardCharsets.UTF_8.decode(msg.content()).toString();
-                    LOGGER.debug("LOG: {}", logStr);
+                    LOGGER.debug("CONTAINER: {}", logStr);
                     if (logStr.contains(waitForLog)) {
                         ready.release();
                         return;
