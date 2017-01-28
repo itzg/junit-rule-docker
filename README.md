@@ -7,13 +7,14 @@ Provides a JUnit rule that starts a container prior to test execution, enables
 access to the exposed ports of the container, and removes the container after
 test execution.
 
-This artifact is available in JCenter, so it may be included by adding this dependency:
+This artifact is [available at JCenter](https://bintray.com/bintray/jcenter?filterByPkgName=junit-rule-docker), 
+so it may be included by adding this dependency:
 
 ```
 <dependency>
     <groupId>me.itzg.testing</groupId>
     <artifactId>junit-rule-docker</artifactId>
-    <version>1.1.1</version>
+    <version>1.2</version>
 </dependency>
 ```
 
