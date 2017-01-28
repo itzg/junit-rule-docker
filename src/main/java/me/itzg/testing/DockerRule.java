@@ -17,9 +17,12 @@
 package me.itzg.testing;
 
 import com.google.common.base.Optional;
+import com.google.common.net.HostAndPort;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerCertificates;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.LogMessage;
+import com.spotify.docker.client.LogStream;
 import com.spotify.docker.client.ProgressHandler;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerConfig;
@@ -39,12 +42,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This is a JUnit rule that manages the lifecycle of a Docker container around a test case or suite.
+ * The container is created with all <code>EXPOSE</code>d ports published. Use {@link #getHostAndPort(int)}
+ * or {@link #getAccessToPort(int)} to resolve the hostname and port of the specifically published port.
  *
  * <p>The following is an example use as a class rule:</p>
  *
@@ -61,6 +68,8 @@ import java.util.List;
  * @since Jan 2017
  */
 public class DockerRule implements TestRule {
+    public static final int DEFAULT_WAIT_FOR_LOG_TIMEOUT = 30000;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
 
     private final String image;
@@ -71,6 +80,8 @@ public class DockerRule implements TestRule {
     private boolean skipWhenOffline;
     private String uri;
     private Path dockerCertPath;
+    private String waitForLog;
+    private long waitForLogTimeout = DEFAULT_WAIT_FOR_LOG_TIMEOUT;
 
     public DockerRule(String image) {
         this.image = image;
@@ -129,6 +140,31 @@ public class DockerRule implements TestRule {
         return this;
     }
 
+    /**
+     * This rule will wait to evaluate the test context until the given snippet, case sensitive, is observed
+     * within the stdout/stderr log of the container.
+     * It will wait up until the timeout specified by {@link #waitForLogTimeout(long)}.
+     *
+     * @param snippet the case-sensitive text that will be matched up against any portion of the log output
+     * @return this for chaining
+     */
+    public DockerRule waitForLog(String snippet) {
+        this.waitForLog = snippet;
+        return this;
+    }
+
+    /**
+     * Configures the amount of time that {@link #waitForLog(String)} will wait for the given snippet.
+     * The default is {@value #DEFAULT_WAIT_FOR_LOG_TIMEOUT} milliseconds.
+     *
+     * @param timeout the amount of time to wait in milliseconds
+     * @return this for chaining
+     */
+    public DockerRule waitForLogTimeout(long timeout) {
+        this.waitForLogTimeout = timeout;
+        return this;
+    }
+
     public Statement apply(final Statement statement, Description description) {
         return new Statement() {
             @Override
@@ -151,14 +187,12 @@ public class DockerRule implements TestRule {
 
                         if (certs.isPresent()) {
                             dockerClientBuilder.dockerCertificates(certs.get());
-                        }
-                        else {
+                        } else {
                             Assert.fail("Given certificates were not loaded");
                         }
 
                     }
-                }
-                else {
+                } else {
                     LOGGER.debug("Loading Docker access configuration from environment");
 //                    dockerClientBuilder = DefaultDockerClient.fromEnv();
                 }
@@ -171,8 +205,7 @@ public class DockerRule implements TestRule {
                 } catch (DockerException|InterruptedException e) {
                     if (skipWhenOffline) {
                         Assume.assumeNoException(e);
-                    }
-                    else {
+                    } else {
                         throw e;
                     }
                 }
@@ -198,12 +231,16 @@ public class DockerRule implements TestRule {
                         .cmd(command);
 
                 container = dockerClient.createContainer(configBuilder.build());
-
                 final String id = container.id();
 
                 LOGGER.info("Starting container {}", id);
 
                 dockerClient.startContainer(id);
+
+                if (waitForLog != null) {
+                    final Semaphore ready = new Semaphore(0);
+                    handleWaitingForLog(id, ready);
+                }
 
                 statement.evaluate();
 
@@ -211,8 +248,7 @@ public class DockerRule implements TestRule {
                     LOGGER.info("Stopping container {}", id);
                     dockerClient.killContainer(id);
                     dockerClient.removeContainer(id);
-                }
-                else {
+                } else {
                     LOGGER.info("Leaving container {} running", id);
                 }
 
@@ -221,6 +257,43 @@ public class DockerRule implements TestRule {
         };
     }
 
+    private void handleWaitingForLog(String containerId, Semaphore ready) throws DockerException, InterruptedException {
+        final LogStream logStream = dockerClient.logs(containerId,
+                DockerClient.LogsParam.stdout(), DockerClient.LogsParam.stderr(), DockerClient.LogsParam.follow());
+
+        LOGGER.debug("Waiting for log snippet '{}'", waitForLog);
+
+        new Thread(() -> {
+            try {
+                while (logStream.hasNext()) {
+                    final LogMessage msg = logStream.next();
+
+                    final String logStr = StandardCharsets.UTF_8.decode(msg.content()).toString();
+                    LOGGER.trace("LOG: {}", logStr);
+                    if (logStr.contains(waitForLog)) {
+                        ready.release();
+                        return;
+                    }
+                }
+            } finally {
+                logStream.close();
+            }
+        }).start();
+
+        if (!ready.tryAcquire(waitForLogTimeout, TimeUnit.MILLISECONDS)) {
+            Assert.fail(String.format(
+                    "Did not observe desired Docker container log snippet within %d ms",
+                    waitForLogTimeout));
+        }
+    }
+
+    /**
+     * Obtains the access information for the requested containerPort
+     * @param containerPort the port to locate according to the <code>EXPOSE</code>d/internal container port
+     * @return a socket address populated with
+     * @throws DockerException if an issue occurred containing the Docker daemon
+     * @throws InterruptedException if interrupted while contacting the Docker daemon
+     */
     public InetSocketAddress getAccessToPort(int containerPort) throws DockerException, InterruptedException {
         ContainerInfo containerInfo = dockerClient.inspectContainer(container.id());
 
@@ -230,5 +303,20 @@ public class DockerRule implements TestRule {
         PortBinding portBinding = portBindings.get(0);
 
         return new InetSocketAddress(dockerClient.getHost(), Integer.parseInt(portBinding.hostPort()));
+    }
+
+    /**
+     * Obtains the access information for the requested containerPort but in the form of a Guava
+     * {@link HostAndPort} which makes it easy to create "host:port" references.
+     *
+     * @param containerPort the port to locate according to the <code>EXPOSE</code>d/internal container port
+     * @return a socket address populated with
+     * @throws DockerException      if an issue occurred containing the Docker daemon
+     * @throws InterruptedException if interrupted while contacting the Docker daemon
+     */
+    public HostAndPort getHostAndPort(int containerPort) throws DockerException, InterruptedException {
+        final InetSocketAddress socketAddress = getAccessToPort(containerPort);
+
+        return HostAndPort.fromParts(socketAddress.getHostName(), socketAddress.getPort());
     }
 }

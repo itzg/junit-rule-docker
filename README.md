@@ -7,6 +7,29 @@ Provides a JUnit rule that starts a container prior to test execution, enables
 access to the exposed ports of the container, and removes the container after
 test execution.
 
+This artifact is available in JCenter, so it may be included by adding this dependency:
+
+```
+<dependency>
+    <groupId>me.itzg.testing</groupId>
+    <artifactId>junit-rule-docker</artifactId>
+    <version>1.1.1</version>
+</dependency>
+```
+
+and the jcenter repository, if you haven't already:
+
+```
+<repository>
+    <snapshots>
+        <enabled>false</enabled>
+    </snapshots>
+    <id>bintrary</id>
+    <name>bintray</name>
+    <url>http://jcenter.bintray.com</url>
+</repository>
+```
+
 The following example shows how to use the rule to start an Elasticsearch instance
 and lookup access to the container's port 9200:
 

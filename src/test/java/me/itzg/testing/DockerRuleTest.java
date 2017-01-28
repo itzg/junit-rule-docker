@@ -17,16 +17,17 @@
 package me.itzg.testing;
 
 import com.google.common.io.CharStreams;
+import com.google.common.net.HostAndPort;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.net.URL;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * Created by geoff on 1/21/17.
@@ -35,26 +36,24 @@ public class DockerRuleTest {
 
     @Rule
     public DockerRule dockerRule = new DockerRule("itzg/elasticsearch:5")
-            .leavingRunning(System.getProperty("testLeaveRunning") != null);
+            .leavingRunning(System.getProperty("testLeaveRunning") != null)
+            .waitForLog("started");
 
     @Test
     public void testAccess() throws Exception {
 
         InetSocketAddress accessToPort = dockerRule.getAccessToPort(9200);
+
         System.out.println("Port 9200 at " + accessToPort);
+        assertThat(accessToPort.getPort(), not(equalTo(0)));
+
+        final HostAndPort hostAndPort = dockerRule.getHostAndPort(9200);
+        assertThat(hostAndPort.getPort(), not(equalTo(0)));
 
         URL url = new URL("http", accessToPort.getHostName(), accessToPort.getPort(), "/");
 
-        long startTime = System.currentTimeMillis();
+        String strContent = CharStreams.toString(new InputStreamReader(((InputStream) url.getContent())));
 
-        while ((System.currentTimeMillis() - startTime) < 20000) {
-            try {
-                String strContent = CharStreams.toString(new InputStreamReader(((InputStream) url.getContent())));
-                System.out.println(strContent);
-                break;
-            } catch (SocketException e) {
-                Thread.sleep(500);
-            }
-        }
+        assertThat(strContent, containsString("cluster_name"));
     }
 }
