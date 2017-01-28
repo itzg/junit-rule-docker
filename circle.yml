@@ -3,6 +3,8 @@ machine:
     version: openjdk8
   services:
     - docker
+  post:
+    - sudo sysctl -w vm.max_map_count=262144
 
 test:
   override:
