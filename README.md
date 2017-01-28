@@ -1,5 +1,4 @@
 [![CircleCI](https://circleci.com/gh/itzg/junit-rule-docker/tree/master.svg?style=svg)](https://circleci.com/gh/itzg/junit-rule-docker/tree/master)
-
 [ ![Download](https://api.bintray.com/packages/itzgeoff/artifacts/junit-rule-docker/images/download.svg) ](https://bintray.com/itzgeoff/artifacts/junit-rule-docker/_latestVersion)
 
 
@@ -31,12 +30,13 @@ and the jcenter repository, if you haven't already:
 </repository>
 ```
 
-The following example shows how to use the rule to start an Elasticsearch instance
-and lookup access to the container's port 9200:
+The following example shows how to use the rule to start an Elasticsearch instance, waiting for Elasticsearch to
+start, and lookup access to the container's port 9200:
 
 ```
 @Rule
-public DockerRule dockerRule = new DockerRule("itzg/elasticsearch:5");
+public DockerRule dockerRule = new DockerRule("itzg/elasticsearch:5")
+                                   .waitForLog("started");
 
 @Test
 public void testAccess() throws Exception {
