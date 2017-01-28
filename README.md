@@ -14,6 +14,7 @@ so it may be included by adding this dependency:
     <groupId>me.itzg.testing</groupId>
     <artifactId>junit-rule-docker</artifactId>
     <version>1.2</version>
+    <scope>test</scope>
 </dependency>
 ```
 
