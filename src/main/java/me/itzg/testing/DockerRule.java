@@ -74,6 +74,7 @@ public class DockerRule implements TestRule {
 
     private final String image;
     private String[] command;
+    private String[] parmeters = new String[]{};
     private DockerClient dockerClient;
     private ContainerCreation container;
     private boolean leaveRunning;
@@ -85,6 +86,18 @@ public class DockerRule implements TestRule {
 
     public DockerRule(String image) {
         this.image = image;
+    }
+
+    /**
+     * Specifies the docker run -e parameters passed to the container.
+     * i.e. xpack.security.enabled=false //for disabling xpack plugin
+     * by elasticsearch images
+     * @param parameter one or more command line arguments
+     * @return this for chaining
+     */
+    public DockerRule parameter(String... parameter) {
+        this.parmeters = parameter;
+        return this;
     }
 
     /**
@@ -228,6 +241,7 @@ public class DockerRule implements TestRule {
                 ContainerConfig.Builder configBuilder = ContainerConfig.builder()
                         .image(image)
                         .hostConfig(hostConfigBuilder.build())
+                        .env(parmeters)
                         .cmd(command);
 
                 container = dockerClient.createContainer(configBuilder.build());
