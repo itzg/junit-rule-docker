@@ -304,7 +304,7 @@ public class DockerRule implements TestRule {
     /**
      * Obtains the access information for the requested containerPort
      * @param containerPort the port to locate according to the <code>EXPOSE</code>d/internal container port
-     * @return a socket address populated with
+     * @return a socket address populated with external host and port of the container
      * @throws DockerException if an issue occurred containing the Docker daemon
      * @throws InterruptedException if interrupted while contacting the Docker daemon
      */
@@ -314,9 +314,14 @@ public class DockerRule implements TestRule {
         NetworkSettings networkSettings = containerInfo.networkSettings();
 
         List<PortBinding> portBindings = networkSettings.ports().get(String.format("%d/tcp", containerPort));
-        PortBinding portBinding = portBindings.get(0);
+        if (portBindings != null && !portBindings.isEmpty()) {
+            PortBinding portBinding = portBindings.get(0);
 
-        return new InetSocketAddress(dockerClient.getHost(), Integer.parseInt(portBinding.hostPort()));
+            return new InetSocketAddress(dockerClient.getHost(), Integer.parseInt(portBinding.hostPort()));
+        }
+        else {
+            return null;
+        }
     }
 
     /**

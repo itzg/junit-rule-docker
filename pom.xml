@@ -106,6 +106,13 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>me.itzg.testing.LargeMemoryTests</excludedGroups>
+                </configuration>
+            </plugin>
         </plugins>
 
         <pluginManagement>
@@ -113,7 +120,7 @@
 
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.19.1</version>
+                    <version>2.20</version>
                 </plugin>
 
             </plugins>
