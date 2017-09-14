@@ -13,7 +13,7 @@ so it may be included by adding this dependency:
 <dependency>
     <groupId>me.itzg.testing</groupId>
     <artifactId>junit-rule-docker</artifactId>
-    <version>1.2</version>
+    <version>1.3</version>
     <scope>test</scope>
 </dependency>
 ```
